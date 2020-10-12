@@ -1,29 +1,38 @@
+-- name: GetCases :many
+SELECT * FROM covid_usa.cases_by_date;
+
 -- name: GetCasesByUID :many
-SELECT c.*, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on c.uid = l.uid
-WHERE c.uid = $1;
+SELECT * FROM covid_usa.cases_by_date
+WHERE uid = $1;
 
 -- name: GetCasesByState :many
-SELECT c.*, l."Province_State" FROM covid_usa.cases_by_date c
+SELECT c.* FROM covid_usa.cases_by_date c
 LEFT JOIN covid_usa.locations l on l.uid = c.uid
 WHERE l."Province_State" = $1;
 
 -- name: GetCasesByDate :many
-SELECT c.*, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE c."Created_At" = $1;
+SELECT * FROM covid_usa.cases_by_date
+WHERE "Created_At" = $1;
 
 -- name: GetCasesSinceDate :many
-SELECT c.*, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE c."Created_At" >= $1;
+SELECT * FROM covid_usa.cases_by_date
+WHERE "Created_At" >= $1;
 
--- name: GetCasesByStateOnDate :many
-SELECT c.*, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE l."Province_State" = $1 AND c."Created_At" = $2;
+-- name: GetCaseByUIDOnDate :one
+SELECT * FROM covid_usa.cases_by_date
+WHERE uid = $1 AND "Created_At" = $2;
 
--- name: GetCasesByStateSinceDate :many
-SELECT c.*, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE l."Province_State" = $1 AND c."Created_At" >= $2;
+-- name: GetCasesByUIDSinceDate :many
+SELECT * FROM covid_usa.cases_by_date
+WHERE uid = $1 AND "Created_At" >= $2;
+
+-- name: GetLocationByUID :one
+SELECT * FROM covid_usa.locations
+WHERE uid = $1;
+
+-- name: GetLocationByName :many
+SELECT * FROM covid_usa.locations
+WHERE "Province_State" = $1;
+
+-- name: GetLocations :many
+SELECT * FROM covid_usa.locations;

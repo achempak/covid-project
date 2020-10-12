@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"covidProject/db"
+	"covidProject/graphql"
 	"covidProject/logger"
 	"fmt"
 	"github.com/joho/godotenv"
+	"net/http"
 	"os"
-
-	"covidProject/db"
 )
 
 func main() {
@@ -35,4 +36,24 @@ func main() {
 			logger.Error(err)
 		}
 	}
+
+	pg, err := db.PGClient()
+	if err != nil {
+		panic(err)
+	}
+	defer pg.Close()
+	if err := pg.Ping(); err != nil {
+		panic(err)
+	}
+	repo := db.NewRepository(pg)
+
+	// configure the server
+	mux := http.NewServeMux()
+	mux.Handle("/", graphql.NewPlaygroundHandler("/query"))
+	mux.Handle("/query", graphql.NewHandler(repo))
+
+	// run the server
+	port := ":8080"
+	fmt.Fprintf(os.Stdout, "🚀 Server ready at http://localhost%s\n", port)
+	fmt.Fprintln(os.Stderr, http.ListenAndServe(port, mux))
 }

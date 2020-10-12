@@ -9,38 +9,50 @@ import (
 	"time"
 )
 
-const getCasesByDate = `-- name: GetCasesByDate :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE c."Created_At" = $1
+const getCaseByUIDOnDate = `-- name: GetCaseByUIDOnDate :one
+SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+WHERE uid = $1 AND "Created_At" = $2
 `
 
-type GetCasesByDateRow struct {
-	LastUpdate          sql.NullTime
-	Confirmed           sql.NullInt32
-	Deaths              sql.NullInt32
-	Recovered           sql.NullFloat64
-	Active              sql.NullFloat64
-	IncidentRate        sql.NullString
-	PeopleTested        sql.NullFloat64
-	PeopleHospitalized  sql.NullFloat64
-	MortalityRate       sql.NullString
-	Uid                 int64
-	TestingRate         sql.NullString
-	HospitalizationRate sql.NullString
-	CreatedAt           time.Time
-	ProvinceState       sql.NullString
+type GetCaseByUIDOnDateParams struct {
+	Uid       int64
+	CreatedAt time.Time
 }
 
-func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]GetCasesByDateRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCasesByDate, createdAt)
+func (q *Queries) GetCaseByUIDOnDate(ctx context.Context, arg GetCaseByUIDOnDateParams) (CovidUsaCasesByDate, error) {
+	row := q.db.QueryRowContext(ctx, getCaseByUIDOnDate, arg.Uid, arg.CreatedAt)
+	var i CovidUsaCasesByDate
+	err := row.Scan(
+		&i.LastUpdate,
+		&i.Confirmed,
+		&i.Deaths,
+		&i.Recovered,
+		&i.Active,
+		&i.IncidentRate,
+		&i.PeopleTested,
+		&i.PeopleHospitalized,
+		&i.MortalityRate,
+		&i.Uid,
+		&i.TestingRate,
+		&i.HospitalizationRate,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getCases = `-- name: GetCases :many
+SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+`
+
+func (q *Queries) GetCases(ctx context.Context) ([]CovidUsaCasesByDate, error) {
+	rows, err := q.db.QueryContext(ctx, getCases)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCasesByDateRow
+	var items []CovidUsaCasesByDate
 	for rows.Next() {
-		var i GetCasesByDateRow
+		var i CovidUsaCasesByDate
 		if err := rows.Scan(
 			&i.LastUpdate,
 			&i.Confirmed,
@@ -55,7 +67,48 @@ func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]Ge
 			&i.TestingRate,
 			&i.HospitalizationRate,
 			&i.CreatedAt,
-			&i.ProvinceState,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCasesByDate = `-- name: GetCasesByDate :many
+SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+WHERE "Created_At" = $1
+`
+
+func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]CovidUsaCasesByDate, error) {
+	rows, err := q.db.QueryContext(ctx, getCasesByDate, createdAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CovidUsaCasesByDate
+	for rows.Next() {
+		var i CovidUsaCasesByDate
+		if err := rows.Scan(
+			&i.LastUpdate,
+			&i.Confirmed,
+			&i.Deaths,
+			&i.Recovered,
+			&i.Active,
+			&i.IncidentRate,
+			&i.PeopleTested,
+			&i.PeopleHospitalized,
+			&i.MortalityRate,
+			&i.Uid,
+			&i.TestingRate,
+			&i.HospitalizationRate,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -71,37 +124,20 @@ func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]Ge
 }
 
 const getCasesByState = `-- name: GetCasesByState :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At, l."Province_State" FROM covid_usa.cases_by_date c
+SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At FROM covid_usa.cases_by_date c
 LEFT JOIN covid_usa.locations l on l.uid = c.uid
 WHERE l."Province_State" = $1
 `
 
-type GetCasesByStateRow struct {
-	LastUpdate          sql.NullTime
-	Confirmed           sql.NullInt32
-	Deaths              sql.NullInt32
-	Recovered           sql.NullFloat64
-	Active              sql.NullFloat64
-	IncidentRate        sql.NullString
-	PeopleTested        sql.NullFloat64
-	PeopleHospitalized  sql.NullFloat64
-	MortalityRate       sql.NullString
-	Uid                 int64
-	TestingRate         sql.NullString
-	HospitalizationRate sql.NullString
-	CreatedAt           time.Time
-	ProvinceState       sql.NullString
-}
-
-func (q *Queries) GetCasesByState(ctx context.Context, provinceState sql.NullString) ([]GetCasesByStateRow, error) {
+func (q *Queries) GetCasesByState(ctx context.Context, provinceState sql.NullString) ([]CovidUsaCasesByDate, error) {
 	rows, err := q.db.QueryContext(ctx, getCasesByState, provinceState)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCasesByStateRow
+	var items []CovidUsaCasesByDate
 	for rows.Next() {
-		var i GetCasesByStateRow
+		var i CovidUsaCasesByDate
 		if err := rows.Scan(
 			&i.LastUpdate,
 			&i.Confirmed,
@@ -116,139 +152,6 @@ func (q *Queries) GetCasesByState(ctx context.Context, provinceState sql.NullStr
 			&i.TestingRate,
 			&i.HospitalizationRate,
 			&i.CreatedAt,
-			&i.ProvinceState,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCasesByStateOnDate = `-- name: GetCasesByStateOnDate :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE l."Province_State" = $1 AND c."Created_At" = $2
-`
-
-type GetCasesByStateOnDateParams struct {
-	ProvinceState sql.NullString
-	CreatedAt     time.Time
-}
-
-type GetCasesByStateOnDateRow struct {
-	LastUpdate          sql.NullTime
-	Confirmed           sql.NullInt32
-	Deaths              sql.NullInt32
-	Recovered           sql.NullFloat64
-	Active              sql.NullFloat64
-	IncidentRate        sql.NullString
-	PeopleTested        sql.NullFloat64
-	PeopleHospitalized  sql.NullFloat64
-	MortalityRate       sql.NullString
-	Uid                 int64
-	TestingRate         sql.NullString
-	HospitalizationRate sql.NullString
-	CreatedAt           time.Time
-	ProvinceState       sql.NullString
-}
-
-func (q *Queries) GetCasesByStateOnDate(ctx context.Context, arg GetCasesByStateOnDateParams) ([]GetCasesByStateOnDateRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCasesByStateOnDate, arg.ProvinceState, arg.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetCasesByStateOnDateRow
-	for rows.Next() {
-		var i GetCasesByStateOnDateRow
-		if err := rows.Scan(
-			&i.LastUpdate,
-			&i.Confirmed,
-			&i.Deaths,
-			&i.Recovered,
-			&i.Active,
-			&i.IncidentRate,
-			&i.PeopleTested,
-			&i.PeopleHospitalized,
-			&i.MortalityRate,
-			&i.Uid,
-			&i.TestingRate,
-			&i.HospitalizationRate,
-			&i.CreatedAt,
-			&i.ProvinceState,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCasesByStateSinceDate = `-- name: GetCasesByStateSinceDate :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE l."Province_State" = $1 AND c."Created_At" >= $2
-`
-
-type GetCasesByStateSinceDateParams struct {
-	ProvinceState sql.NullString
-	CreatedAt     time.Time
-}
-
-type GetCasesByStateSinceDateRow struct {
-	LastUpdate          sql.NullTime
-	Confirmed           sql.NullInt32
-	Deaths              sql.NullInt32
-	Recovered           sql.NullFloat64
-	Active              sql.NullFloat64
-	IncidentRate        sql.NullString
-	PeopleTested        sql.NullFloat64
-	PeopleHospitalized  sql.NullFloat64
-	MortalityRate       sql.NullString
-	Uid                 int64
-	TestingRate         sql.NullString
-	HospitalizationRate sql.NullString
-	CreatedAt           time.Time
-	ProvinceState       sql.NullString
-}
-
-func (q *Queries) GetCasesByStateSinceDate(ctx context.Context, arg GetCasesByStateSinceDateParams) ([]GetCasesByStateSinceDateRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCasesByStateSinceDate, arg.ProvinceState, arg.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetCasesByStateSinceDateRow
-	for rows.Next() {
-		var i GetCasesByStateSinceDateRow
-		if err := rows.Scan(
-			&i.LastUpdate,
-			&i.Confirmed,
-			&i.Deaths,
-			&i.Recovered,
-			&i.Active,
-			&i.IncidentRate,
-			&i.PeopleTested,
-			&i.PeopleHospitalized,
-			&i.MortalityRate,
-			&i.Uid,
-			&i.TestingRate,
-			&i.HospitalizationRate,
-			&i.CreatedAt,
-			&i.ProvinceState,
 		); err != nil {
 			return nil, err
 		}
@@ -264,37 +167,19 @@ func (q *Queries) GetCasesByStateSinceDate(ctx context.Context, arg GetCasesBySt
 }
 
 const getCasesByUID = `-- name: GetCasesByUID :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on c.uid = l.uid
-WHERE c.uid = $1
+SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+WHERE uid = $1
 `
 
-type GetCasesByUIDRow struct {
-	LastUpdate          sql.NullTime
-	Confirmed           sql.NullInt32
-	Deaths              sql.NullInt32
-	Recovered           sql.NullFloat64
-	Active              sql.NullFloat64
-	IncidentRate        sql.NullString
-	PeopleTested        sql.NullFloat64
-	PeopleHospitalized  sql.NullFloat64
-	MortalityRate       sql.NullString
-	Uid                 int64
-	TestingRate         sql.NullString
-	HospitalizationRate sql.NullString
-	CreatedAt           time.Time
-	ProvinceState       sql.NullString
-}
-
-func (q *Queries) GetCasesByUID(ctx context.Context, uid int64) ([]GetCasesByUIDRow, error) {
+func (q *Queries) GetCasesByUID(ctx context.Context, uid int64) ([]CovidUsaCasesByDate, error) {
 	rows, err := q.db.QueryContext(ctx, getCasesByUID, uid)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCasesByUIDRow
+	var items []CovidUsaCasesByDate
 	for rows.Next() {
-		var i GetCasesByUIDRow
+		var i CovidUsaCasesByDate
 		if err := rows.Scan(
 			&i.LastUpdate,
 			&i.Confirmed,
@@ -309,7 +194,53 @@ func (q *Queries) GetCasesByUID(ctx context.Context, uid int64) ([]GetCasesByUID
 			&i.TestingRate,
 			&i.HospitalizationRate,
 			&i.CreatedAt,
-			&i.ProvinceState,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCasesByUIDSinceDate = `-- name: GetCasesByUIDSinceDate :many
+SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+WHERE uid = $1 AND "Created_At" >= $2
+`
+
+type GetCasesByUIDSinceDateParams struct {
+	Uid       int64
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetCasesByUIDSinceDate(ctx context.Context, arg GetCasesByUIDSinceDateParams) ([]CovidUsaCasesByDate, error) {
+	rows, err := q.db.QueryContext(ctx, getCasesByUIDSinceDate, arg.Uid, arg.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CovidUsaCasesByDate
+	for rows.Next() {
+		var i CovidUsaCasesByDate
+		if err := rows.Scan(
+			&i.LastUpdate,
+			&i.Confirmed,
+			&i.Deaths,
+			&i.Recovered,
+			&i.Active,
+			&i.IncidentRate,
+			&i.PeopleTested,
+			&i.PeopleHospitalized,
+			&i.MortalityRate,
+			&i.Uid,
+			&i.TestingRate,
+			&i.HospitalizationRate,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -325,37 +256,19 @@ func (q *Queries) GetCasesByUID(ctx context.Context, uid int64) ([]GetCasesByUID
 }
 
 const getCasesSinceDate = `-- name: GetCasesSinceDate :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At, l."Province_State" FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE c."Created_At" >= $1
+SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+WHERE "Created_At" >= $1
 `
 
-type GetCasesSinceDateRow struct {
-	LastUpdate          sql.NullTime
-	Confirmed           sql.NullInt32
-	Deaths              sql.NullInt32
-	Recovered           sql.NullFloat64
-	Active              sql.NullFloat64
-	IncidentRate        sql.NullString
-	PeopleTested        sql.NullFloat64
-	PeopleHospitalized  sql.NullFloat64
-	MortalityRate       sql.NullString
-	Uid                 int64
-	TestingRate         sql.NullString
-	HospitalizationRate sql.NullString
-	CreatedAt           time.Time
-	ProvinceState       sql.NullString
-}
-
-func (q *Queries) GetCasesSinceDate(ctx context.Context, createdAt time.Time) ([]GetCasesSinceDateRow, error) {
+func (q *Queries) GetCasesSinceDate(ctx context.Context, createdAt time.Time) ([]CovidUsaCasesByDate, error) {
 	rows, err := q.db.QueryContext(ctx, getCasesSinceDate, createdAt)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCasesSinceDateRow
+	var items []CovidUsaCasesByDate
 	for rows.Next() {
-		var i GetCasesSinceDateRow
+		var i CovidUsaCasesByDate
 		if err := rows.Scan(
 			&i.LastUpdate,
 			&i.Confirmed,
@@ -370,7 +283,112 @@ func (q *Queries) GetCasesSinceDate(ctx context.Context, createdAt time.Time) ([
 			&i.TestingRate,
 			&i.HospitalizationRate,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLocationByName = `-- name: GetLocationByName :many
+SELECT uid, iso2, iso3, code3, fips, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key, Population FROM covid_usa.locations
+WHERE "Province_State" = $1
+`
+
+func (q *Queries) GetLocationByName(ctx context.Context, provinceState sql.NullString) ([]CovidUsaLocation, error) {
+	rows, err := q.db.QueryContext(ctx, getLocationByName, provinceState)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CovidUsaLocation
+	for rows.Next() {
+		var i CovidUsaLocation
+		if err := rows.Scan(
+			&i.Uid,
+			&i.Iso2,
+			&i.Iso3,
+			&i.Code3,
+			&i.Fips,
+			&i.Admin2,
 			&i.ProvinceState,
+			&i.CountryRegion,
+			&i.Lat,
+			&i.Long,
+			&i.CombinedKey,
+			&i.Population,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLocationByUID = `-- name: GetLocationByUID :one
+SELECT uid, iso2, iso3, code3, fips, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key, Population FROM covid_usa.locations
+WHERE uid = $1
+`
+
+func (q *Queries) GetLocationByUID(ctx context.Context, uid int64) (CovidUsaLocation, error) {
+	row := q.db.QueryRowContext(ctx, getLocationByUID, uid)
+	var i CovidUsaLocation
+	err := row.Scan(
+		&i.Uid,
+		&i.Iso2,
+		&i.Iso3,
+		&i.Code3,
+		&i.Fips,
+		&i.Admin2,
+		&i.ProvinceState,
+		&i.CountryRegion,
+		&i.Lat,
+		&i.Long,
+		&i.CombinedKey,
+		&i.Population,
+	)
+	return i, err
+}
+
+const getLocations = `-- name: GetLocations :many
+SELECT uid, iso2, iso3, code3, fips, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key, Population FROM covid_usa.locations
+`
+
+func (q *Queries) GetLocations(ctx context.Context) ([]CovidUsaLocation, error) {
+	rows, err := q.db.QueryContext(ctx, getLocations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CovidUsaLocation
+	for rows.Next() {
+		var i CovidUsaLocation
+		if err := rows.Scan(
+			&i.Uid,
+			&i.Iso2,
+			&i.Iso3,
+			&i.Code3,
+			&i.Fips,
+			&i.Admin2,
+			&i.ProvinceState,
+			&i.CountryRegion,
+			&i.Lat,
+			&i.Long,
+			&i.CombinedKey,
+			&i.Population,
 		); err != nil {
 			return nil, err
 		}

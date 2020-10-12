@@ -1,10 +1,10 @@
 # Where are all the schema files located? globs are supported eg  src/**/*.graphqls
 schema:
-  - graph/*.graphqls
+  - graphql/*.graphql
 
 # Where should the generated server code go?
 exec:
-  filename: graph/generated/generated.go
+  filename: graphql/generated/generated.go
   package: generated
 
 # Uncomment to enable federation
@@ -14,20 +14,20 @@ exec:
 
 # Where should any generated models go?
 model:
-  filename: graph/model/models_gen.go
+  filename: graphql/model/models_gen.go
   package: model
 
 # Where should the resolver implementations go?
 resolver:
-  layout: follow-schema
-  dir: graph
-  package: graph
+  filename: graphql/resolvers.go
+  type: Resolver
+  package: graphql
 
 # Optional: turn on use `gqlgen:"fieldName"` tags in your models
 # struct_tag: json
 
 # Optional: turn on to use []Thing instead of []*Thing
-# omit_slice_element_pointers: false
+omit_slice_element_pointers: true
 
 # Optional: set to speed up generation time by not performing a final validation pass.
 # skip_validation: true
@@ -35,7 +35,7 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-  - "covidProject/graph/model"
+  - "covidProject/db"
 
 # This section declares type mapping between the GraphQL and go type systems
 #
@@ -45,12 +45,18 @@ autobind:
 models:
   ID:
     model:
-      - github.com/99designs/gqlgen/graphql.ID
-      - github.com/99designs/gqlgen/graphql.Int
+#      - github.com/99designs/gqlgen/graphql.ID
+#      - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
-      - github.com/99designs/gqlgen/graphql.Int32
+#      - github.com/99designs/gqlgen/graphql.Int32
   Int:
     model:
-      - github.com/99designs/gqlgen/graphql.Int
+#      - github.com/99designs/gqlgen/graphql.Int
       - github.com/99designs/gqlgen/graphql.Int64
-      - github.com/99designs/gqlgen/graphql.Int32
+#      - github.com/99designs/gqlgen/graphql.Int32
+  Location:
+    model:
+      - covidProject/db.CovidUsaLocation
+  Case:
+    model:
+      - covidProject/db.CovidUsaCasesByDate

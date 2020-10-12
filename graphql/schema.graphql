@@ -1,0 +1,39 @@
+type Case {
+    id: ID!
+    location: Location
+    created_at: String!
+    last_update: String
+    confirmed: Int
+    deaths: Int
+    recovered: Int
+    active: Int
+    incident_rate: Float
+    people_tested: Float
+    people_hospitalized: Float
+    mortality_rate: Float
+    testing_rate: Float
+    hospitalization_rate: Float
+}
+
+type Location {
+    id: ID!
+    iso2: String
+    iso3: String
+    code3: Int
+    fips: Int
+    admin2: String
+    province_state: String
+    country_region: String
+    lat: Float
+    long_: Float
+    combined_key: String
+    population: Int
+}
+
+type Query {
+    case(id: ID!, created_at: String!): Case
+    cases(id: ID, created_at: String): [Case!]
+    casesSince(id: ID, created_since: String): [Case!]
+    location(id: ID!): Location
+    locations: [Location!]!
+}
