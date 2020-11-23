@@ -10,8 +10,8 @@ import (
 )
 
 const getCaseByUIDOnDate = `-- name: GetCaseByUIDOnDate :one
-SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
-WHERE uid = $1 AND "Created_At" = $2
+SELECT last_update, confirmed, deaths, recovered, active, incident_rate, people_tested, people_hospitalized, mortality_rate, uid, testing_rate, hospitalization_rate, created_at FROM covid_usa.cases_by_date
+WHERE uid = $1 AND "created_at" = $2
 `
 
 type GetCaseByUIDOnDateParams struct {
@@ -41,7 +41,7 @@ func (q *Queries) GetCaseByUIDOnDate(ctx context.Context, arg GetCaseByUIDOnDate
 }
 
 const getCases = `-- name: GetCases :many
-SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+SELECT last_update, confirmed, deaths, recovered, active, incident_rate, people_tested, people_hospitalized, mortality_rate, uid, testing_rate, hospitalization_rate, created_at FROM covid_usa.cases_by_date
 `
 
 func (q *Queries) GetCases(ctx context.Context) ([]CovidUsaCasesByDate, error) {
@@ -82,8 +82,8 @@ func (q *Queries) GetCases(ctx context.Context) ([]CovidUsaCasesByDate, error) {
 }
 
 const getCasesByDate = `-- name: GetCasesByDate :many
-SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
-WHERE "Created_At" = $1
+SELECT last_update, confirmed, deaths, recovered, active, incident_rate, people_tested, people_hospitalized, mortality_rate, uid, testing_rate, hospitalization_rate, created_at FROM covid_usa.cases_by_date
+WHERE "created_at" = $1
 `
 
 func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]CovidUsaCasesByDate, error) {
@@ -124,9 +124,9 @@ func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]Co
 }
 
 const getCasesByState = `-- name: GetCasesByState :many
-SELECT c.Last_Update, c.Confirmed, c.Deaths, c.Recovered, c.Active, c.Incident_Rate, c.People_Tested, c.People_Hospitalized, c.Mortality_Rate, c.uid, c.Testing_Rate, c.Hospitalization_Rate, c.Created_At FROM covid_usa.cases_by_date c
+SELECT c.last_update, c.confirmed, c.deaths, c.recovered, c.active, c.incident_rate, c.people_tested, c.people_hospitalized, c.mortality_rate, c.uid, c.testing_rate, c.hospitalization_rate, c.created_at FROM covid_usa.cases_by_date c
 LEFT JOIN covid_usa.locations l on l.uid = c.uid
-WHERE l."Province_State" = $1
+WHERE l."province_state" = $1
 `
 
 func (q *Queries) GetCasesByState(ctx context.Context, provinceState sql.NullString) ([]CovidUsaCasesByDate, error) {
@@ -167,7 +167,7 @@ func (q *Queries) GetCasesByState(ctx context.Context, provinceState sql.NullStr
 }
 
 const getCasesByUID = `-- name: GetCasesByUID :many
-SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
+SELECT last_update, confirmed, deaths, recovered, active, incident_rate, people_tested, people_hospitalized, mortality_rate, uid, testing_rate, hospitalization_rate, created_at FROM covid_usa.cases_by_date
 WHERE uid = $1
 `
 
@@ -209,8 +209,8 @@ func (q *Queries) GetCasesByUID(ctx context.Context, uid int64) ([]CovidUsaCases
 }
 
 const getCasesByUIDSinceDate = `-- name: GetCasesByUIDSinceDate :many
-SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
-WHERE uid = $1 AND "Created_At" >= $2
+SELECT last_update, confirmed, deaths, recovered, active, incident_rate, people_tested, people_hospitalized, mortality_rate, uid, testing_rate, hospitalization_rate, created_at FROM covid_usa.cases_by_date
+WHERE uid = $1 AND "created_at" >= $2
 `
 
 type GetCasesByUIDSinceDateParams struct {
@@ -256,8 +256,8 @@ func (q *Queries) GetCasesByUIDSinceDate(ctx context.Context, arg GetCasesByUIDS
 }
 
 const getCasesSinceDate = `-- name: GetCasesSinceDate :many
-SELECT Last_Update, Confirmed, Deaths, Recovered, Active, Incident_Rate, People_Tested, People_Hospitalized, Mortality_Rate, uid, Testing_Rate, Hospitalization_Rate, Created_At FROM covid_usa.cases_by_date
-WHERE "Created_At" >= $1
+SELECT last_update, confirmed, deaths, recovered, active, incident_rate, people_tested, people_hospitalized, mortality_rate, uid, testing_rate, hospitalization_rate, created_at FROM covid_usa.cases_by_date
+WHERE "created_at" >= $1
 `
 
 func (q *Queries) GetCasesSinceDate(ctx context.Context, createdAt time.Time) ([]CovidUsaCasesByDate, error) {
@@ -298,8 +298,8 @@ func (q *Queries) GetCasesSinceDate(ctx context.Context, createdAt time.Time) ([
 }
 
 const getLocationByName = `-- name: GetLocationByName :many
-SELECT uid, iso2, iso3, code3, fips, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key, Population FROM covid_usa.locations
-WHERE "Province_State" = $1
+SELECT uid, iso2, iso3, code3, fips, admin2, province_state, country_region, lat, long_, combined_key, population FROM covid_usa.locations
+WHERE "province_state" = $1
 `
 
 func (q *Queries) GetLocationByName(ctx context.Context, provinceState sql.NullString) ([]CovidUsaLocation, error) {
@@ -339,7 +339,7 @@ func (q *Queries) GetLocationByName(ctx context.Context, provinceState sql.NullS
 }
 
 const getLocationByUID = `-- name: GetLocationByUID :one
-SELECT uid, iso2, iso3, code3, fips, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key, Population FROM covid_usa.locations
+SELECT uid, iso2, iso3, code3, fips, admin2, province_state, country_region, lat, long_, combined_key, population FROM covid_usa.locations
 WHERE uid = $1
 `
 
@@ -364,7 +364,7 @@ func (q *Queries) GetLocationByUID(ctx context.Context, uid int64) (CovidUsaLoca
 }
 
 const getLocations = `-- name: GetLocations :many
-SELECT uid, iso2, iso3, code3, fips, Admin2, Province_State, Country_Region, Lat, Long_, Combined_Key, Population FROM covid_usa.locations
+SELECT uid, iso2, iso3, code3, fips, admin2, province_state, country_region, lat, long_, combined_key, population FROM covid_usa.locations
 `
 
 func (q *Queries) GetLocations(ctx context.Context) ([]CovidUsaLocation, error) {

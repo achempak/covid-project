@@ -8,6 +8,7 @@ import (
 	"covidProject/graphql/generated"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -42,10 +43,26 @@ func fixSqlType(n interface{}) interface{} {
 			return &v.Bool
 		}
 		return (*bool)(nil)
+	case sql.NullTime:
+		if v.Valid {
+			timeString := v.Time.String()
+			return &timeString
+		}
+		return (*string)(nil)
+	case time.Time:
+		return v.String()
 	case int64, string, bool, float64:
 		return v
 	}
-	panic(n)
+	return nil
+}
+
+func stringToFloat(s *string) *float64 {
+	f, err := strconv.ParseFloat(*s, 64)
+	if err != nil {
+		return (*float64)(nil)
+	}
+	return &f
 }
 
 type Resolver struct{
@@ -57,16 +74,11 @@ func (r *caseResolver) ID(ctx context.Context, obj *db.CovidUsaCasesByDate) (int
 }
 
 func (r *caseResolver) Location(ctx context.Context, obj *db.CovidUsaCasesByDate) (*db.CovidUsaLocation, error) {
-	locs, err := r.Repository.GetLocations(ctx)
+	loc, err := r.Repository.GetLocationByUID(ctx, obj.Uid)
 	if err != nil {
 		return nil, err
 	}
-	for _, l := range locs {
-		if l.Uid == obj.Uid {
-			return &l, nil
-		}
-	}
-	return nil, nil
+	return &loc, nil
 }
 
 func (r *caseResolver) CreatedAt(ctx context.Context, obj *db.CovidUsaCasesByDate) (string, error) {
@@ -86,15 +98,17 @@ func (r *caseResolver) Deaths(ctx context.Context, obj *db.CovidUsaCasesByDate) 
 }
 
 func (r *caseResolver) Recovered(ctx context.Context, obj *db.CovidUsaCasesByDate) (*int64, error) {
-	return fixSqlType(obj.Recovered).(*int64), nil
+	n := int64(*fixSqlType(obj.Recovered).(*float64))
+	return &n, nil
 }
 
 func (r *caseResolver) Active(ctx context.Context, obj *db.CovidUsaCasesByDate) (*int64, error) {
-	return fixSqlType(obj.Active).(*int64), nil
+	n := int64(*fixSqlType(obj.Active).(*float64))
+	return &n, nil
 }
 
 func (r *caseResolver) IncidentRate(ctx context.Context, obj *db.CovidUsaCasesByDate) (*float64, error) {
-	return fixSqlType(obj.IncidentRate).(*float64), nil
+	return stringToFloat(fixSqlType(obj.IncidentRate).(*string)), nil
 }
 
 func (r *caseResolver) PeopleTested(ctx context.Context, obj *db.CovidUsaCasesByDate) (*float64, error) {
@@ -106,19 +120,19 @@ func (r *caseResolver) PeopleHospitalized(ctx context.Context, obj *db.CovidUsaC
 }
 
 func (r *caseResolver) MortalityRate(ctx context.Context, obj *db.CovidUsaCasesByDate) (*float64, error) {
-	return fixSqlType(obj.MortalityRate).(*float64), nil
+	return stringToFloat(fixSqlType(obj.MortalityRate).(*string)), nil
 }
 
 func (r *caseResolver) TestingRate(ctx context.Context, obj *db.CovidUsaCasesByDate) (*float64, error) {
-	return fixSqlType(obj.TestingRate).(*float64), nil
+	return stringToFloat(fixSqlType(obj.TestingRate).(*string)), nil
 }
 
 func (r *caseResolver) HospitalizationRate(ctx context.Context, obj *db.CovidUsaCasesByDate) (*float64, error) {
-	return fixSqlType(obj.HospitalizationRate).(*float64), nil
+	return stringToFloat(fixSqlType(obj.HospitalizationRate).(*string)), nil
 }
 
 func (r *locationResolver) ID(ctx context.Context, obj *db.CovidUsaLocation) (int64, error) {
-	return *fixSqlType(obj.Uid).(*int64), nil
+	return fixSqlType(obj.Uid).(int64), nil
 }
 
 func (r *locationResolver) Iso2(ctx context.Context, obj *db.CovidUsaLocation) (*string, error) {
@@ -134,7 +148,12 @@ func (r *locationResolver) Code3(ctx context.Context, obj *db.CovidUsaLocation) 
 }
 
 func (r *locationResolver) Fips(ctx context.Context, obj *db.CovidUsaLocation) (*int64, error) {
-	return fixSqlType(obj.Fips).(*int64), nil
+	//n := int64(*(fixSqlType(obj.Fips).(*float64)))
+	if obj.Fips.Valid {
+		num := int64(obj.Fips.Float64)
+		return &num, nil
+	}
+	return nil, nil
 }
 
 func (r *locationResolver) Admin2(ctx context.Context, obj *db.CovidUsaLocation) (*string, error) {
@@ -179,22 +198,25 @@ func (r *queryResolver) Case(ctx context.Context, id int64, createdAt string) (*
 
 func (r *queryResolver) Cases(ctx context.Context, id *int64, createdAt *string) ([]db.CovidUsaCasesByDate, error) {
 	if id == nil && createdAt == nil {
-		return nil, nil
+		return r.Repository.GetCases(ctx)
+	}
+	if id != nil && createdAt != nil {
+		c, err := r.Case(ctx, *id, *createdAt)
+		if err != nil {
+			return nil, err
+		}
+		return []db.CovidUsaCasesByDate{*c}, nil
 	}
 	if createdAt == nil {
 		return r.Repository.GetCasesByUID(ctx, *id)
 	}
 
+	// if id == nil
 	t, err := time.Parse("2006-01-02", *createdAt)
 	if err != nil {
 		return nil, fmt.Errorf(dateError)
 	}
-
-	if id == nil {
-		return r.Repository.GetCasesByDate(ctx, t)
-	}
-	c, err := r.Case(ctx, *id, *createdAt)
-	return []db.CovidUsaCasesByDate{*c}, err
+	return r.Repository.GetCasesByDate(ctx, t)
 }
 
 func (r *queryResolver) CasesSince(ctx context.Context, id *int64, createdSince *string) ([]db.CovidUsaCasesByDate, error) {

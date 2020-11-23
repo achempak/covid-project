@@ -12,18 +12,18 @@ import (
 )
 
 var columnMap = map[string]int {
-	"Last_Update": 2,
-	"Confirmed": 5,
-	"Deaths": 6,
-	"Recovered": 7,
-	"Active": 8,
-	"Incident_Rate": 10,
-	"People_Tested": 11,
-	"People_Hospitalized": 12,
-	"Mortality_Rate": 13,
+	"last_update": 2,
+	"confirmed": 5,
+	"deaths": 6,
+	"recovered": 7,
+	"active": 8,
+	"incident_rate": 10,
+	"people_tested": 11,
+	"people_hospitalized": 12,
+	"mortality_rate": 13,
 	"UID": 14,
-	"Testing_Rate": 16,
-	"Hospitalization_Rate": 17,
+	"testing_rate": 16,
+	"hospitalization_rate": 17,
 }
 
 func fixData(f string) *string {
@@ -79,19 +79,19 @@ func ReadFile(filename string) ([][]*string, error) {
 
 func upsertStatement(rows [][]*string) string {
 	query := "INSERT INTO covid_usa.cases_by_date(" +
-		"\"Last_Update\"," +
-		"\"Confirmed\"," +
-		"\"Deaths\"," +
-		"\"Recovered\"," +
-		"\"Active\"," +
-		"\"Incident_Rate\"," +
-		"\"People_Tested\"," +
-		"\"People_Hospitalized\"," +
-		"\"Mortality_Rate\"," +
+		"\"last_update\"," +
+		"\"confirmed\"," +
+		"\"deaths\"," +
+		"\"recovered\"," +
+		"\"active\"," +
+		"\"incident_rate\"," +
+		"\"people_tested\"," +
+		"\"people_hospitalized\"," +
+		"\"mortality_rate\"," +
 		"\"uid\"," +
-		"\"Testing_Rate\"," +
-		"\"Hospitalization_Rate\"," +
-		"\"Created_At\") " +
+		"\"testing_rate\"," +
+		"\"hospitalization_rate\"," +
+		"\"created_At\") " +
 		"VALUES "
 	for rowNum, row := range rows {
 		for i := 1; i <= len(row); i++ {
@@ -107,20 +107,20 @@ func upsertStatement(rows [][]*string) string {
 	}
 	query = query[:len(query)-1] + " " // get rid of trailing comma
 	query +=
-		"ON CONFLICT(uid, \"Created_At\")" +
+		"ON CONFLICT(uid, \"created_At\")" +
 		"DO UPDATE SET " +
-			"\"Last_Update\" = EXCLUDED.\"Last_Update\"," +
-			"\"Confirmed\" = EXCLUDED.\"Confirmed\"," +
-			"\"Deaths\" = EXCLUDED.\"Deaths\"," +
-			"\"Recovered\" = EXCLUDED.\"Recovered\"," +
-			"\"Active\" = EXCLUDED.\"Active\"," +
-			"\"Incident_Rate\" = EXCLUDED.\"Incident_Rate\"," +
-			"\"People_Tested\" = EXCLUDED.\"People_Tested\"," +
-			"\"People_Hospitalized\" = EXCLUDED.\"People_Hospitalized\"," +
-			"\"Mortality_Rate\" = EXCLUDED.\"Mortality_Rate\"," +
-			"\"Testing_Rate\" = EXCLUDED.\"Testing_Rate\"," +
-			"\"Hospitalization_Rate\" = EXCLUDED.\"Hospitalization_Rate\" " +
-		"WHERE covid_usa.cases_by_date.\"Last_Update\" != EXCLUDED.\"Last_Update\";"
+			"\"last_update\" = EXCLUDED.\"last_update\"," +
+			"\"confirmed\" = EXCLUDED.\"confirmed\"," +
+			"\"deaths\" = EXCLUDED.\"deaths\"," +
+			"\"recovered\" = EXCLUDED.\"recovered\"," +
+			"\"active\" = EXCLUDED.\"active\"," +
+			"\"incident_rate\" = EXCLUDED.\"incident_rate\"," +
+			"\"people_tested\" = EXCLUDED.\"people_tested\"," +
+			"\"people_hospitalized\" = EXCLUDED.\"people_hospitalized\"," +
+			"\"mortality_rate\" = EXCLUDED.\"mortality_rate\"," +
+			"\"testing_rate\" = EXCLUDED.\"testing_rate\"," +
+			"\"hospitalization_rate\" = EXCLUDED.\"hospitalization_rate\" " +
+		"WHERE covid_usa.cases_by_date.\"last_update\" != EXCLUDED.\"last_update\";"
 	return query
 }
 
