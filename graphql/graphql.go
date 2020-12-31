@@ -1,6 +1,7 @@
 package graphql
 
 import (
+	"covidProject/dataloaders"
 	"covidProject/db"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -9,10 +10,11 @@ import (
 )
 
 // NewHandler returns a new graphql endpoint handler.
-func NewHandler(repo db.Repository) http.Handler {
+func NewHandler(repo db.Repository, dl dataloaders.Retriever) http.Handler {
 	return handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &Resolver{
 			Repository: repo,
+			DataLoaders: dl,
 		},
 	}))
 }

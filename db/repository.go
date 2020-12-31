@@ -19,6 +19,7 @@ type Repository interface {
 	GetLocationByUID(ctx context.Context, uid int64) (CovidUsaLocation, error)
 	GetLocationByName(ctx context.Context, location sql.NullString) ([]CovidUsaLocation, error)
 	GetLocations(ctx context.Context) ([]CovidUsaLocation, error)
+	ListLocationsByCaseIDs(ctx context.Context, caseIDs []int64) ([]ListLocationsByCaseIDsRow, error)
 }
 
 type repoSvc struct {

@@ -61,10 +61,13 @@ func ReadFile(filename string) ([][]*string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Problem reading %s\n%s", filename, err)
 		}
+		uidFloat, _ := strconv.ParseFloat(recordAllCols[14], 64)
+		uid := fmt.Sprintf("%.0f", uidFloat)
 		record := make([]string, 0, 13) // Extract for 13 columns in target table
 		record = append(record, recordAllCols[2])
 		record = append(record, recordAllCols[5:9]...)
-		record = append(record, recordAllCols[10:15]...)
+		record = append(record, recordAllCols[10:14]...)
+		record = append(record, uid)
 		record = append(record, recordAllCols[16:]...)
 
 		recordPointer := make([]*string, 0, 13)
@@ -91,7 +94,7 @@ func upsertStatement(rows [][]*string) string {
 		"\"uid\"," +
 		"\"testing_rate\"," +
 		"\"hospitalization_rate\"," +
-		"\"created_At\") " +
+		"\"created_at\") " +
 		"VALUES "
 	for rowNum, row := range rows {
 		for i := 1; i <= len(row); i++ {
@@ -107,7 +110,7 @@ func upsertStatement(rows [][]*string) string {
 	}
 	query = query[:len(query)-1] + " " // get rid of trailing comma
 	query +=
-		"ON CONFLICT(uid, \"created_At\")" +
+		"ON CONFLICT(uid, \"created_at\")" +
 		"DO UPDATE SET " +
 			"\"last_update\" = EXCLUDED.\"last_update\"," +
 			"\"confirmed\" = EXCLUDED.\"confirmed\"," +

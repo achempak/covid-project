@@ -7,6 +7,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 const getCaseByUIDOnDate = `-- name: GetCaseByUIDOnDate :one
@@ -125,7 +127,7 @@ func (q *Queries) GetCasesByDate(ctx context.Context, createdAt time.Time) ([]Co
 
 const getCasesByState = `-- name: GetCasesByState :many
 SELECT c.last_update, c.confirmed, c.deaths, c.recovered, c.active, c.incident_rate, c.people_tested, c.people_hospitalized, c.mortality_rate, c.uid, c.testing_rate, c.hospitalization_rate, c.created_at FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
+INNER JOIN covid_usa.locations l on l.uid = c.uid
 WHERE l."province_state" = $1
 `
 
@@ -389,6 +391,64 @@ func (q *Queries) GetLocations(ctx context.Context) ([]CovidUsaLocation, error) 
 			&i.Long,
 			&i.CombinedKey,
 			&i.Population,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLocationsByCaseIDs = `-- name: ListLocationsByCaseIDs :many
+SELECT l.uid, l.iso2, l.iso3, l.code3, l.fips, l.admin2, l.province_state, l.country_region, l.lat, l.long_, l.combined_key, l.population, c.uid AS case_id FROM covid_usa.cases_by_date c
+INNER JOIN covid_usa.locations l on l.uid = c.uid AND c.uid = ANY($1::bigint[])
+`
+
+type ListLocationsByCaseIDsRow struct {
+	Uid           int64
+	Iso2          sql.NullString
+	Iso3          sql.NullString
+	Code3         sql.NullInt32
+	Fips          sql.NullFloat64
+	Admin2        sql.NullString
+	ProvinceState sql.NullString
+	CountryRegion sql.NullString
+	Lat           sql.NullFloat64
+	Long          sql.NullFloat64
+	CombinedKey   sql.NullString
+	Population    sql.NullInt64
+	CaseID        int64
+}
+
+func (q *Queries) ListLocationsByCaseIDs(ctx context.Context, dollar_1 []int64) ([]ListLocationsByCaseIDsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLocationsByCaseIDs, pq.Array(dollar_1))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLocationsByCaseIDsRow
+	for rows.Next() {
+		var i ListLocationsByCaseIDsRow
+		if err := rows.Scan(
+			&i.Uid,
+			&i.Iso2,
+			&i.Iso3,
+			&i.Code3,
+			&i.Fips,
+			&i.Admin2,
+			&i.ProvinceState,
+			&i.CountryRegion,
+			&i.Lat,
+			&i.Long,
+			&i.CombinedKey,
+			&i.Population,
+			&i.CaseID,
 		); err != nil {
 			return nil, err
 		}

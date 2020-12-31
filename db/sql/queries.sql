@@ -7,7 +7,7 @@ WHERE uid = $1;
 
 -- name: GetCasesByState :many
 SELECT c.* FROM covid_usa.cases_by_date c
-LEFT JOIN covid_usa.locations l on l.uid = c.uid
+INNER JOIN covid_usa.locations l on l.uid = c.uid
 WHERE l."province_state" = $1;
 
 -- name: GetCasesByDate :many
@@ -36,3 +36,7 @@ WHERE "province_state" = $1;
 
 -- name: GetLocations :many
 SELECT * FROM covid_usa.locations;
+
+-- name: ListLocationsByCaseIDs :many
+SELECT l.*, c.uid AS case_id FROM covid_usa.cases_by_date c
+INNER JOIN covid_usa.locations l on l.uid = c.uid AND c.uid = ANY($1::bigint[]);

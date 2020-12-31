@@ -4,6 +4,7 @@ package graphql
 
 import (
 	"context"
+	"covidProject/dataloaders"
 	"covidProject/db"
 	"covidProject/graphql/generated"
 	"database/sql"
@@ -67,6 +68,7 @@ func stringToFloat(s *string) *float64 {
 
 type Resolver struct{
 	Repository db.Repository
+	DataLoaders dataloaders.Retriever
 }
 
 func (r *caseResolver) ID(ctx context.Context, obj *db.CovidUsaCasesByDate) (int64, error) {
@@ -74,11 +76,12 @@ func (r *caseResolver) ID(ctx context.Context, obj *db.CovidUsaCasesByDate) (int
 }
 
 func (r *caseResolver) Location(ctx context.Context, obj *db.CovidUsaCasesByDate) (*db.CovidUsaLocation, error) {
-	loc, err := r.Repository.GetLocationByUID(ctx, obj.Uid)
-	if err != nil {
-		return nil, err
-	}
-	return &loc, nil
+	//loc, err := r.Repository.GetLocationByUID(ctx, obj.Uid)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return &loc, nil
+	return r.DataLoaders.Retrieve(ctx).LocationByCaseID.Load(obj.Uid)
 }
 
 func (r *caseResolver) CreatedAt(ctx context.Context, obj *db.CovidUsaCasesByDate) (string, error) {
